@@ -1,0 +1,64 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    container_name: nest-app
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_DATABASE=articles_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=super-strong-secret-key-change-in-production-min-32-chars
+      - JWT_EXPIRES_IN=24h
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres-container
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=articles_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+
+  redis:
+    image: redis:8.2.1
+    container_name: redis-container
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+    name: postgres_dev_data
+    driver: local
+  redis_data:
+    name: redis_dev_data
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
